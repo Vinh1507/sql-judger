@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: "rabbitmq:3.9-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      
+  dramatiq:
+    build: .
+    command: ["sh", "-c", "while ! nc -z rabbitmq 5672; do sleep 1; done; dramatiq tasks"]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  scheduler:
+    build: .
+    command: ["sh", "-c", "while ! nc -z rabbitmq 5672; do sleep 1; done; python scheduler.py"]
+    environment:
+      - IPS=192.168.144.133,192.168.144.135,192.168.144.137
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  redis:
+    image: redis:latest
+    container_name: redis_service
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:

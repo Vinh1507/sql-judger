@@ -80,9 +80,15 @@ def compare_output(user_output: str, expected_output_file_path: str) -> str:
 
 def remove_isolated_database(db_name):
     try:
-        create_db_query = f"DROP DATABASE {db_name}"
+        sql_commands = f"""
+        REVOKE ALL PRIVILEGES ON {db_name}.* FROM 'sql_lab_s2'@'%';
+        DROP DATABASE {db_name};
+        """
         s1_connection, s1_cursor = db_connection.get_s1_connection_and_cursor()
-        s1_cursor.execute(create_db_query)
+        for command in sql_commands.split(';'):
+            if command.strip():
+                s1_cursor.execute(command)
+
         s1_connection.commit()
     except:
         pass

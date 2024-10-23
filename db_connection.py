@@ -2,10 +2,10 @@ import mysql.connector
 
 # Thiết lập thông tin kết nối
 s1_config = {
-    'user': 'root',        # Thay thế bằng tên người dùng của bạn
+    'user': 'sql_lab_s1',        # Thay thế bằng tên người dùng của bạn
     'password': 'SqlLab2024!',    # Thay thế bằng mật khẩu của bạn
     'host': 'localhost',       # Địa chỉ máy chủ (có thể là địa chỉ IP hoặc localhost)
-    'database': 'base_issue_data', # Thay thế bằng tên cơ sở dữ liệu của bạn
+    # 'database': 'base_issue_data', # Thay thế bằng tên cơ sở dữ liệu của bạn
     'port': 3309
 }
 

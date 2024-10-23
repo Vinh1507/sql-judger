@@ -6,3 +6,4 @@ apscheduler
 pika
 redis
 mysql-connector-python
+minio

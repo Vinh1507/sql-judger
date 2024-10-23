@@ -18,19 +18,20 @@ client = redis.Redis(host='localhost', port=6380, db=0)
 def limit_resources(memory_limit_MB):
     resource.setrlimit(resource.RLIMIT_AS, (memory_limit_MB, memory_limit_MB))
 
-def test_func(timeout):
-    time.sleep(timeout)
-
 @dramatiq.actor
-def judge_one_testcase(result_queue, issue, testcase):
+def judge_one_testcase(result_queue, data, testcase):
+    issue = data['issue']
     memory_limit = issue['memory_limit']  # MB
     limit_resources(memory_limit * 1024 * 1024)
 
     print(f"Process Testcase {os.getpid()} started.")
     
     try:
-        mysql_judge.judge_one_testcase(issue, testcase)
+        mysql_judge.judge_one_testcase(issue, data, testcase)
     except JudgerException as e:
-        result_queue.put((e.status))
+        result_queue.put({
+            'status': e.status,
+            'execution_time': e.execution_time,
+        })
     
     print(f"Process Testcase {os.getpid()} finished.")

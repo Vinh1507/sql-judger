@@ -1,8 +1,8 @@
 import os
 
-def create_file(file_name, sql_code):
+def create_file(file_name, content):
     with open(file_name, 'w') as file:
-        file.write(sql_code)
+        file.write(content)
         # print(f"Đã tạo file {file_name} và ghi nội dung vào.")
 
 def read_file(filepath):

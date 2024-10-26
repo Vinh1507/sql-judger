@@ -9,10 +9,12 @@ import json
 import sql_judge
 
 def on_message_received(ch, method, properties, body):
-    
-    data = json.loads(body.decode('utf-8'))
-    print(data)
-    executor.submit(sql_judge.judge_submission, data)
+    try:
+        data = json.loads(body.decode('utf-8'))
+        print(data)
+        executor.submit(sql_judge.judge_submission, data)
+    except Exception as e:
+        print(e)
 
 exchange_name = 'topic_sql_judge'
 queue_name = 'mysql_letterbox'
@@ -27,7 +29,7 @@ def start_consumer():
     channel.basic_qos(prefetch_count=3)
     channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=pattern)
     channel.basic_consume(queue=queue_name, on_message_callback=on_message_received, auto_ack=True)
-    print("Starting Competing Consuming")
+    print("Start Consuming")
     channel.start_consuming()
 
 executor = ThreadPoolExecutor(max_workers=3)

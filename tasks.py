@@ -29,11 +29,6 @@ def judge_one_testcase(result_queue, data, testcase_index):
     try:
         mysql_judge.judge_one_testcase(issue, data, testcase_index)
     except JudgerException as e:
-        result_queue.put({
-            'status': e.status,
-            'execution_time': e.execution_time,
-            'message': e.message,
-            'output': e.output
-        })
+        result_queue.put(e.get_data())
     
     print(f"Process Testcase {os.getpid()} finished.")

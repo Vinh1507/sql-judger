@@ -27,28 +27,29 @@ def judge_submission(data:dict):
         for p in processes:
             p.join()
 
-        final_status, accepted_testcase_count, first_error_status, max_execution_time, first_message, outputs = None, 0, None, 0, '', []
+        final_status, accepted_testcase_count, first_error_status, max_execution_time, first_message = None, 0, None, 0, ''
+        testcase_judgement_audit = []
         while not result_queue.empty():
             result_testcase = result_queue.get()
-            print(result_testcase)
-            print(1)
             max_execution_time = max(max_execution_time, result_testcase['execution_time'])
-            print(2)
+            testcase_judgement_audit.append({
+                **result_testcase,
+            })
+
             if result_testcase['status'] == SubmissionStatus.ACCEPTED:
                 accepted_testcase_count += 1
-                # outputs.append(result_testcase['output'])
-            elif first_error_status is None:
-                print(3)    
+                
+            elif first_error_status is None: 
                 first_error_status = result_testcase['status']
                 first_message = result_testcase['message']
-                # outputs.append(None)
+            
         
         if accepted_testcase_count == len(issue['testcases']) and first_error_status is None:
             final_status = SubmissionStatus.ACCEPTED
         else:
             final_status = first_error_status
         
-        print("All processes have completed or been stopped.")
+        print("All processes have completed or been stopped.", testcase_judgement_audit)
 
         if target_type == SubmissionStatus.TYPE_JUDGE_SUBMISSION:
             update_submission_data = {

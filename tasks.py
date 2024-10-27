@@ -19,7 +19,7 @@ def limit_resources(memory_limit_MB):
     resource.setrlimit(resource.RLIMIT_AS, (memory_limit_MB, memory_limit_MB))
 
 @dramatiq.actor
-def judge_one_testcase(result_queue, data, testcase):
+def judge_one_testcase(result_queue, data, testcase_index):
     issue = data['issue']
     memory_limit = issue['memory_limit']  # MB
     limit_resources(memory_limit * 1024 * 1024)
@@ -27,11 +27,8 @@ def judge_one_testcase(result_queue, data, testcase):
     print(f"Process Testcase {os.getpid()} started.")
     
     try:
-        mysql_judge.judge_one_testcase(issue, data, testcase)
+        mysql_judge.judge_one_testcase(issue, data, testcase_index)
     except JudgerException as e:
-        result_queue.put({
-            'status': e.status,
-            'execution_time': e.execution_time,
-        })
+        result_queue.put(e.get_data())
     
     print(f"Process Testcase {os.getpid()} finished.")

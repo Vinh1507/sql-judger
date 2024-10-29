@@ -23,7 +23,7 @@ def create_isolated_database(testcase_data, db_name):
     try:
         sql_commands = f"""
         CREATE DATABASE {db_name};
-        GRANT CREATE, ALTER, INSERT, DROP, UPDATE, DELETE, SELECT ON {db_name}.* TO '{os.getenv('DB_S2_USERNAME')}'@'%';
+        GRANT CREATE, ALTER, INSERT, DROP, UPDATE, DELETE, SELECT, REFERENCES ON {db_name}.* TO '{os.getenv('DB_S2_USERNAME')}'@'%';
         FLUSH PRIVILEGES;
         """
         s1_connection, s1_cursor = db_connection.get_s1_connection_and_cursor()
@@ -57,7 +57,7 @@ def execute_solution(testcase_data, sql_file_name, sql_code, time_limit):
         )
         end_time = time.time()
         execution_time = end_time - start_time
-        print(result.stdout)
+        # print(result.stdout)
         return {
             'user_output': result.stdout,
             'execution_time': execution_time
@@ -122,8 +122,8 @@ def compare_output(testcase_data, user_output: str, expected_output: str) -> str
             status=SubmissionStatus.INTERNAL_ERROR,
         )
 
-def save_standart_output(standard_output_text, issue_postfix: str, language: str, testcase_index):
-    object_name = f"output_issue-{issue_postfix}_lang-{language}_tc{testcase_index}.txt"
+def save_standart_output(standard_output_text, question_postfix: str, language: str, testcase_index):
+    object_name = f"output_question-{question_postfix}_lang-{language}_tc{testcase_index}.txt"
     storage_helper.upload_file_from_content(storage_helper.default_bucket_name, object_name, standard_output_text)
 
 def remove_isolated_database(db_name):
@@ -142,16 +142,16 @@ def remove_isolated_database(db_name):
         pass
 
 
-def judge_one_testcase(issue: dict, data: dict, testcase_index: int) -> None:
+def judge_one_testcase(question: dict, data: dict, testcase_index: int) -> None:
     try:
         user = data['user']
-        issue = data['issue']
+        question = data['question']
         submission = data['submission']
         target_type = data.get('type', SubmissionStatus.TYPE_JUDGE_SUBMISSION)
         need_compare_result = target_type == SubmissionStatus.TYPE_JUDGE_SUBMISSION
-        testcase = issue['testcases'][testcase_index]
+        testcase = question['testcases'][testcase_index]
         testcase_data = {
-            'issue_id': issue.get('id', None),
+            'question_id': question.get('id', None),
             'lang': 'mysql',
             'testcase_id': testcase.get('id', None),
             'submission_id': submission.get('id', None),
@@ -167,14 +167,14 @@ def judge_one_testcase(issue: dict, data: dict, testcase_index: int) -> None:
         USE {db_name};
         {testcase['input_judge_sql']}
         {submission['user_sql']}
-        {issue['check_judge_sql']}
+        {question['check_judge_sql']}
         """
 
         solution_file_name = db_name + '.sql'
-        execution_result = execute_solution(testcase_data, os.path.join(os.getenv('SOLUTION_DIR'), solution_file_name), solution_code, issue['time_limit'])
+        execution_result = execute_solution(testcase_data, os.path.join(os.getenv('SOLUTION_DIR'), solution_file_name), solution_code, question['time_limit'])
         # print(f"Thời gian thực thi truy vấn: {execution_result['execution_time']:.6f} giây")
         if need_compare_result:
-            testcase['output_file_path'] = f"output_issue-{issue['code']}_lang-mysql_tc{testcase_index}.txt"
+            testcase['output_file_path'] = f"output_question-{question['code']}_lang-mysql_tc{testcase['testcase_id']}.txt"
             # compare_status = compare_output(execution_result['user_output'], os.path.join(os.getenv('EXPECTED_OUTPUT_DIR'), testcase['output_file_path']))
             expected_output = get_expected_output(testcase_data, object_name=testcase['output_file_path'])
             compare_status = compare_output(testcase_data, execution_result['user_output'], expected_output)
@@ -187,7 +187,7 @@ def judge_one_testcase(issue: dict, data: dict, testcase_index: int) -> None:
             )
         else:
             if data.get('save_standart_output', False):
-                save_standart_output(execution_result['user_output'], issue_postfix=issue['code'], language='mysql', testcase_index=testcase_index)
+                save_standart_output(execution_result['user_output'], question_postfix=question['code'], language='mysql', testcase_index=testcase['testcase_id'])
             # else:
             print(type(execution_result['execution_time']))
             raise JudgerException(

@@ -1,7 +1,7 @@
 class JudgerException(Exception):
     def __init__(
         self,
-        issue_id: int = None,
+        question_id: int = None,
         lang: str = None,
         testcase_id: int = None,
         submission_id: int = None,
@@ -12,7 +12,7 @@ class JudgerException(Exception):
         expected_output=None
     ) -> None:
         super().__init__()
-        self.issue_id = issue_id
+        self.question_id = question_id
         self.lang = lang
         self.testcase_id = testcase_id
         self.submission_id = submission_id
@@ -24,7 +24,7 @@ class JudgerException(Exception):
         
     def get_data(self) -> dict:
         return {
-            "issue_id": self.issue_id,
+            "question_id": self.question_id,
             "lang": self.lang,
             "testcase_id": self.testcase_id,
             "submission_id": self.submission_id,
@@ -39,7 +39,7 @@ class JudgerException(Exception):
         status_str = ', '.join(f"{k}: {v}" for k, v in (self.status or {}).items())
         return (
             f"JudgerException:\n"
-            f"Issue ID: {self.issue_id}\n"
+            f"Question ID: {self.question_id}\n"
             f"Language: {self.lang}\n"
             f"Test Case ID: {self.testcase_id}\n"
             f"Status: {status_str}\n"

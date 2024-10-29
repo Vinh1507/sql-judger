@@ -12,14 +12,14 @@ load_dotenv()
 def judge_submission(data:dict):
     try:
         user = data['user']
-        issue = data['issue']
+        question = data['question']
         submission:dict = data['submission']
         target_type = data.get('type', SubmissionStatus.TYPE_JUDGE_SUBMISSION)
 
         processes = []
         result_queue = multiprocessing.Queue()
 
-        for testcase_index in range(len(issue['testcases'])):
+        for testcase_index in range(len(question['testcases'])):
             p = multiprocessing.Process(target=tasks.judge_one_testcase, args=(result_queue, data, testcase_index))
             processes.append(p)
             p.start()      
@@ -44,7 +44,7 @@ def judge_submission(data:dict):
                 first_message = result_testcase['message']
             
         
-        if accepted_testcase_count == len(issue['testcases']) and first_error_status is None:
+        if accepted_testcase_count == len(question['testcases']) and first_error_status is None:
             final_status = SubmissionStatus.ACCEPTED
         else:
             final_status = first_error_status
@@ -63,19 +63,19 @@ def judge_submission(data:dict):
 
             print(update_submission_data)
             response = requests.post(f"{os.getenv('SQL_LAB_SERVER_URL') + '/judge/update-submission-status'}", json=update_submission_data)
-        elif target_type == SubmissionStatus.TYPE_VALIDATE_CREATE_ISSUE:
-            issue__validation_data = {
+        elif target_type == SubmissionStatus.TYPE_VALIDATE_CREATE_QUESTION:
+            question__validation_data = {
                 'validateResult': {
                     'isSuccess': final_status == SubmissionStatus.VALID,
-                    'issue': {
-                        'code': issue['code'],
+                    'question': {
+                        'code': question['code'],
                     },
                     'message': first_message,
                     # 'outputs': outputs
                 },
-                'isUpdateExistedIssue': data.get('update_existed_issue', False)
+                'isUpdateExistedQuestion': data.get('update_existed_question', False)
             }
-            response = requests.post(f"{os.getenv('SQL_LAB_SERVER_URL') + '/judge/update-issue-status'}", json=issue__validation_data)
+            response = requests.post(f"{os.getenv('SQL_LAB_SERVER_URL') + '/judge/update-question-status'}", json=question__validation_data)
             
     except Exception as e:
         print(e)

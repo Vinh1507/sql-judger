@@ -58,7 +58,7 @@ def read_file(bucket_name, object_name):
         response = client.get_object(bucket_name, object_name)
         
         content = response.read().decode("utf-8") 
-        print(f"Nội dung file '{object_name}':\n{content}")
+        # print(f"Nội dung file '{object_name}':\n{content}")
         
         # Close stream after reading file
         response.close()

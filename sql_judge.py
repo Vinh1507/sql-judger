@@ -19,7 +19,7 @@ def judge_submission(data:dict):
         processes = []
         result_queue = multiprocessing.Queue()
 
-        for testcase_index in range(len(question['testcases'])):
+        for testcase_index in range(len(question['test_cases'])):
             p = multiprocessing.Process(target=tasks.judge_one_testcase, args=(result_queue, data, testcase_index))
             processes.append(p)
             p.start()      
@@ -44,7 +44,7 @@ def judge_submission(data:dict):
                 first_message = result_testcase['message']
             
         
-        if accepted_testcase_count == len(question['testcases']) and first_error_status is None:
+        if accepted_testcase_count == len(question['test_cases']) and first_error_status is None:
             final_status = SubmissionStatus.ACCEPTED
         else:
             final_status = first_error_status

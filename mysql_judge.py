@@ -146,10 +146,11 @@ def judge_one_testcase(question: dict, data: dict, testcase_index: int) -> None:
     try:
         user = data['user']
         question = data['question']
+        # print(question['test_cases'])
         submission = data['submission']
         target_type = data.get('type', SubmissionStatus.TYPE_JUDGE_SUBMISSION)
         need_compare_result = target_type == SubmissionStatus.TYPE_JUDGE_SUBMISSION
-        testcase = question['testcases'][testcase_index]
+        testcase = question['test_cases'][testcase_index]
         testcase_data = {
             'question_id': question.get('id', None),
             'lang': 'mysql',
@@ -167,14 +168,15 @@ def judge_one_testcase(question: dict, data: dict, testcase_index: int) -> None:
         USE {db_name};
         {testcase['input_judge_sql']}
         {submission['user_sql']}
-        {question['check_judge_sql']}
+        {question['additional_check_code']}
         """
 
         solution_file_name = db_name + '.sql'
         execution_result = execute_solution(testcase_data, os.path.join(os.getenv('SOLUTION_DIR'), solution_file_name), solution_code, question['time_limit'])
         # print(f"Thời gian thực thi truy vấn: {execution_result['execution_time']:.6f} giây")
         if need_compare_result:
-            testcase['output_file_path'] = f"output_question-{question['code']}_lang-mysql_tc{testcase['testcase_id']}.txt"
+            print(testcase['output_file_path'])
+            # testcase['output_file_path'] = f"output_question-{question['code']}_lang-mysql_tc{testcase['testcase_id']}.txt"
             # compare_status = compare_output(execution_result['user_output'], os.path.join(os.getenv('EXPECTED_OUTPUT_DIR'), testcase['output_file_path']))
             expected_output = get_expected_output(testcase_data, object_name=testcase['output_file_path'])
             compare_status = compare_output(testcase_data, execution_result['user_output'], expected_output)

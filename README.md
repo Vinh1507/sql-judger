@@ -2,5 +2,6 @@
 
 ```
 docker compose up
-dramatiq tasks
+python consumer.py
+
 ```

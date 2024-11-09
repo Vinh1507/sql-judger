@@ -28,12 +28,20 @@ def judge_submission(data:dict):
             p.join()
 
         final_status, accepted_testcase_count, first_error_status, max_execution_time, first_message = None, 0, None, 0, ''
+        user_outputs = []
         testcase_judgement_audit = []
         while not result_queue.empty():
             result_testcase = result_queue.get()
             max_execution_time = max(max_execution_time, result_testcase['execution_time'])
             testcase_judgement_audit.append({
                 **result_testcase,
+            })
+            user_outputs.append({
+                "testCase": {
+                    'index': result_testcase.get('test_case_index'),
+                    'id': result_testcase.get('test_case_id'),
+                },
+                "text": result_testcase.get('user_output')
             })
 
             if result_testcase['status'] == SubmissionStatus.ACCEPTED:
@@ -71,7 +79,7 @@ def judge_submission(data:dict):
                         'code': question['code'],
                     },
                     'message': first_message,
-                    # 'outputs': outputs
+                    'outputs': user_outputs
                 },
                 'isUpdateExistedQuestion': data.get('update_existed_question', False)
             }

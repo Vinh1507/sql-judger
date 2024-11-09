@@ -32,7 +32,7 @@ services:
 
   redis:
     image: redis:latest
-    container_name: redis_service
+    container_name: redis_judger
     ports:
       - "6380:6379"
     volumes:

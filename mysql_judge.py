@@ -39,7 +39,35 @@ def create_isolated_database(testcase_data, db_name):
             status=SubmissionStatus.INTERNAL_ERROR,
         )
     
+def execute_input_code(testcase_data, sql_file_name, sql_code):
+    try:
+        file_helper.create_file(sql_file_name, sql_code)
+        command = f"mysql -h {os.getenv('DB_BASE_HOST')} -P {os.getenv('DB_BASE_PORT')} -p{os.getenv('DB_S2_PASSWORD')} -u {os.getenv('DB_S2_USERNAME')} < {sql_file_name}"
+        
+        result = subprocess.run(
+            command, 
+            shell=True, 
+            check=True, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, 
+            text=True, 
+        )
+        return {
+            'output': result.stdout,
+        }
 
+    except subprocess.CalledProcessError as e:
+        raise JudgerException(
+            **testcase_data,
+            status=SubmissionStatus.RUNTIME_ERROR,
+            message=e.stderr,
+        )
+    except Exception as e:
+        raise JudgerException(
+            **testcase_data,
+            status=SubmissionStatus.RUNTIME_ERROR,
+        )
+        
 def execute_solution(testcase_data, sql_file_name, sql_code, time_limit):
     try:
         start_time = time.time()
@@ -146,14 +174,16 @@ def judge_one_testcase(question: dict, data: dict, testcase_index: int) -> None:
     try:
         user = data['user']
         question = data['question']
+        # print(question['test_cases'])
         submission = data['submission']
         target_type = data.get('type', SubmissionStatus.TYPE_JUDGE_SUBMISSION)
         need_compare_result = target_type == SubmissionStatus.TYPE_JUDGE_SUBMISSION
-        testcase = question['testcases'][testcase_index]
+        testcase = question['test_cases'][testcase_index]
         testcase_data = {
             'question_id': question.get('id', None),
             'lang': 'mysql',
-            'testcase_id': testcase.get('id', None),
+            'test_case_id': testcase.get('id', None),
+            'test_case_index': testcase_index,
             'submission_id': submission.get('id', None),
         }
 
@@ -163,18 +193,26 @@ def judge_one_testcase(question: dict, data: dict, testcase_index: int) -> None:
 
         create_isolated_database(testcase_data, db_name)
 
-        solution_code = f"""
+
+        input_code = f"""
         USE {db_name};
         {testcase['input_judge_sql']}
+        """
+        input_file_name = db_name + '_input' + '.sql'
+        execute_input_code(testcase_data, os.path.join(os.getenv('SOLUTION_DIR'), input_file_name), input_code)
+
+        solution_code = f"""
+        USE {db_name};
         {submission['user_sql']}
-        {question['check_judge_sql']}
+        {question['additional_check_code']}
         """
 
         solution_file_name = db_name + '.sql'
         execution_result = execute_solution(testcase_data, os.path.join(os.getenv('SOLUTION_DIR'), solution_file_name), solution_code, question['time_limit'])
         # print(f"Thời gian thực thi truy vấn: {execution_result['execution_time']:.6f} giây")
         if need_compare_result:
-            testcase['output_file_path'] = f"output_question-{question['code']}_lang-mysql_tc{testcase['testcase_id']}.txt"
+            print(testcase['output_file_path'])
+            # testcase['output_file_path'] = f"output_question-{question['code']}_lang-mysql_tc{testcase['test_case_id']}.txt"
             # compare_status = compare_output(execution_result['user_output'], os.path.join(os.getenv('EXPECTED_OUTPUT_DIR'), testcase['output_file_path']))
             expected_output = get_expected_output(testcase_data, object_name=testcase['output_file_path'])
             compare_status = compare_output(testcase_data, execution_result['user_output'], expected_output)
@@ -187,10 +225,11 @@ def judge_one_testcase(question: dict, data: dict, testcase_index: int) -> None:
             )
         else:
             if data.get('save_standart_output', False):
-                save_standart_output(execution_result['user_output'], question_postfix=question['code'], language='mysql', testcase_index=testcase['testcase_id'])
+                save_standart_output(execution_result['user_output'], question_postfix=question['code'], language='mysql', testcase_index=testcase['id'])
             # else:
             print(type(execution_result['execution_time']))
             raise JudgerException(
+                **testcase_data,
                 status=SubmissionStatus.VALID,
                 execution_time=execution_result['execution_time'],
                 user_output=execution_result['user_output'],
@@ -205,6 +244,7 @@ def judge_one_testcase(question: dict, data: dict, testcase_index: int) -> None:
     finally:
         try:
             remove_isolated_database(db_name)
+            file_helper.delete_file(os.path.join(os.getenv('SOLUTION_DIR'), input_file_name))
             file_helper.delete_file(os.path.join(os.getenv('SOLUTION_DIR'), solution_file_name))
         except:
             pass

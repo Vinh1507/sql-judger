@@ -3,7 +3,8 @@ class JudgerException(Exception):
         self,
         question_id: int = None,
         lang: str = None,
-        testcase_id: int = None,
+        test_case_id: int = None,
+        test_case_index: int = None,
         submission_id: int = None,
         status: dict[str, str] = None,
         message: str = '',
@@ -14,7 +15,8 @@ class JudgerException(Exception):
         super().__init__()
         self.question_id = question_id
         self.lang = lang
-        self.testcase_id = testcase_id
+        self.test_case_id = test_case_id
+        self.test_case_index = test_case_index
         self.submission_id = submission_id
         self.status = status
         self.message = message
@@ -26,7 +28,8 @@ class JudgerException(Exception):
         return {
             "question_id": self.question_id,
             "lang": self.lang,
-            "testcase_id": self.testcase_id,
+            "test_case_id": self.test_case_id,
+            "test_case_index": self.test_case_index,
             "submission_id": self.submission_id,
             "status": self.status,
             "message": self.message,
@@ -41,7 +44,7 @@ class JudgerException(Exception):
             f"JudgerException:\n"
             f"Question ID: {self.question_id}\n"
             f"Language: {self.lang}\n"
-            f"Test Case ID: {self.testcase_id}\n"
+            f"Test Case ID: {self.test_case_id}\n"
             f"Status: {status_str}\n"
             f"Message: {self.message}\n"
             f"Execution Time: {self.execution_time:.2f} seconds\n"

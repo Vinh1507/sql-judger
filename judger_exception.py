@@ -8,6 +8,7 @@ class JudgerException(Exception):
         submission_id: int = None,
         status: dict[str, str] = None,
         message: str = '',
+        input_file_name: str = '',
         execution_time: float = 0,
         user_output=None,
         expected_output=None
@@ -19,6 +20,7 @@ class JudgerException(Exception):
         self.test_case_index = test_case_index
         self.submission_id = submission_id
         self.status = status
+        self.input_file_name = input_file_name
         self.message = message
         self.execution_time = execution_time
         self.user_output = user_output
@@ -33,6 +35,7 @@ class JudgerException(Exception):
             "submission_id": self.submission_id,
             "status": self.status,
             "message": self.message,
+            "input_file_name": self.input_file_name,
             "execution_time": self.execution_time,
             "user_output": self.user_output,
             "expected_output": self.expected_output,

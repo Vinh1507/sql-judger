@@ -109,6 +109,7 @@ def judge_submission(data:dict):
             question_validation_data = {
                 'validateResult': {
                     'isSuccess': final_status == SubmissionStatus.VALID,
+                    'languageName': 1, #mysql
                     'question': {
                         'code': question['code'],
                     },

@@ -1,12 +1,8 @@
 import pika
-import time
-import random
-
 import pika.exchange_type
-# import multiprocessing
 from concurrent.futures import ThreadPoolExecutor
 import json
-import sql_judge
+from judger import sql_judge
 
 def on_message_received(ch, method, properties, body):
     try:
@@ -21,7 +17,7 @@ queue_name = 'mysql_letterbox'
 pattern = "mysql.#"
 
 def start_consumer():
-    connection_parameters = pika.ConnectionParameters('localhost')
+    connection_parameters = pika.ConnectionParameters('192.168.144.1')
     connection = pika.BlockingConnection(connection_parameters)
     channel = connection.channel()
     channel.exchange_declare(exchange=exchange_name, exchange_type='topic')

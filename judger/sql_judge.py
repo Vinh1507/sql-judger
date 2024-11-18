@@ -2,11 +2,11 @@ import multiprocessing
 import subprocess
 import os
 import time
-import tasks
+import judger.tasks as tasks
 from dotenv import load_dotenv
 import requests
-from constants import SubmissionStatus
-import storage_helper
+from constants.submission_constants import SubmissionStatus
+import helpers.storage_helper as storage_helper
 
 load_dotenv()
 
@@ -15,7 +15,7 @@ def judge_submission(data:dict):
         user = data['user']
         submission:dict = data['submission']
         target_type = data.get('type', SubmissionStatus.TYPE_JUDGE_SUBMISSION)
-
+        language = data['language']
         question:dict = data['question']
         input_test_cases_from_s3 = storage_helper.read_input_zip_file(storage_helper.default_bucket_name, question.get('input_file_path'))
         
@@ -109,12 +109,13 @@ def judge_submission(data:dict):
             question_validation_data = {
                 'validateResult': {
                     'isSuccess': final_status == SubmissionStatus.VALID,
-                    'languageName': 1, #mysql
+                    'languageName': language,
                     'question': {
                         'code': question['code'],
                     },
                     'message': first_message,
-                    'outputs': user_outputs
+                    'outputs': user_outputs,
+                    'executionTime': max_execution_time,
                 },
                 'isUpdateExistedQuestion': data.get('update_existed_question', False)
             }

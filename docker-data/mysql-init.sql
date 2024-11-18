@@ -1,0 +1,13 @@
+USE mysql;
+CREATE USER 'sql_lab_s1'@'%' IDENTIFIED BY 'SqlLab2024!';
+GRANT ALL ON *.* TO 'sql_lab_s1'@'%' WITH GRANT OPTION;
+GRANT GRANT OPTION ON *.* TO 'sql_lab_s1'@'%';
+FLUSH PRIVILEGES;
+
+CREATE USER 'sql_lab_s2'@'%' IDENTIFIED BY 'SqlLab2024!';
+-- GRANT CREATE, ALTER, INSERT, DROP, UPDATE, DELETE, SELECT ON *.* TO 'sql_lab_s2'@'%';
+
+-- CREATE USER 'sql_lab_s3'@'%' IDENTIFIED BY 'SqlLab2024!';
+-- GRANT CREATE, ALTER, INSERT, UPDATE, DELETE, SELECT ON *.* TO 'sql_lab_s3'@'%';
+
+SET GLOBAL max_execution_time = 15000;

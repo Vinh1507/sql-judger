@@ -1,4 +1,4 @@
-import db_connection
+from db_connections import mysql_connection
 import uuid
 import time
 from dotenv import load_dotenv
@@ -7,17 +7,17 @@ import subprocess
 from datetime import datetime
 import json
 import os
-import file_helper
-from judger_exception import JudgerException
-from constants import SubmissionStatus
-import storage_helper
+import helpers.file_helper as file_helper
+from exceptions.judger_exception import JudgerException
+from constants.submission_constants import SubmissionStatus
+import helpers.storage_helper as storage_helper
 import redis
 from minio import Minio
 from minio.error import S3Error
 
 load_dotenv()
 
-redis_client = redis.StrictRedis(host='localhost', port=6380, db=0)
+redis_client = redis.StrictRedis(host='redis_judger', port=6379, db=0)
 
 def create_isolated_database(test_case_data, db_name):
     try:
@@ -26,7 +26,7 @@ def create_isolated_database(test_case_data, db_name):
         GRANT CREATE, ALTER, INSERT, DROP, UPDATE, DELETE, SELECT, REFERENCES ON {db_name}.* TO '{os.getenv('DB_S2_USERNAME')}'@'%';
         FLUSH PRIVILEGES;
         """
-        s1_connection, s1_cursor = db_connection.get_s1_connection_and_cursor()
+        s1_connection, s1_cursor = mysql_connection.get_s1_connection_and_cursor()
         for command in sql_commands.split(';'):
             if command.strip():
                 s1_cursor.execute(command)
@@ -42,7 +42,7 @@ def create_isolated_database(test_case_data, db_name):
 def execute_input_code(test_case_data, sql_file_name, sql_code):
     try:
         file_helper.create_file(sql_file_name, sql_code)
-        command = f"mysql -h {os.getenv('DB_BASE_HOST')} -P {os.getenv('DB_BASE_PORT')} -p{os.getenv('DB_S2_PASSWORD')} -u {os.getenv('DB_S2_USERNAME')} < {sql_file_name}"
+        command = f"mysql -h {os.getenv('MYSQL_DB_HOST')} -P {os.getenv('MYSQL_DB_PORT')} -p{os.getenv('DB_S2_PASSWORD')} -u {os.getenv('DB_S2_USERNAME')} < {sql_file_name}"
         
         result = subprocess.run(
             command, 
@@ -72,7 +72,7 @@ def execute_solution(test_case_data, sql_file_name, sql_code, time_limit):
     try:
         start_time = time.time()
         file_helper.create_file(sql_file_name, sql_code)
-        command = f"mysql -h {os.getenv('DB_BASE_HOST')} -P {os.getenv('DB_BASE_PORT')} -p{os.getenv('DB_S2_PASSWORD')} -u {os.getenv('DB_S2_USERNAME')} < {sql_file_name}"
+        command = f"mysql -h {os.getenv('MYSQL_DB_HOST')} -P {os.getenv('MYSQL_DB_PORT')} -p{os.getenv('DB_S2_PASSWORD')} -u {os.getenv('DB_S2_USERNAME')} < {sql_file_name}"
         
         result = subprocess.run(
             command, 
@@ -160,7 +160,7 @@ def remove_isolated_database(db_name):
         REVOKE ALL PRIVILEGES ON {db_name}.* FROM '{os.getenv('DB_S2_USERNAME')}'@'%';
         DROP DATABASE {db_name};
         """
-        s1_connection, s1_cursor = db_connection.get_s1_connection_and_cursor()
+        s1_connection, s1_cursor = mysql_connection.get_s1_connection_and_cursor()
         for command in sql_commands.split(';'):
             if command.strip():
                 s1_cursor.execute(command)

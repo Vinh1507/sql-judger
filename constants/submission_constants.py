@@ -13,3 +13,6 @@ class SubmissionStatus:
     TYPE_VALIDATE_CREATE_QUESTION = "TYPE_VALIDATE_CREATE_QUESTION"
 
 
+class LanguageConstant:
+    MYSQL_INDEX = 1
+    SQL_SERVER_INDEX = 2

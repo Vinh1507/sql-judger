@@ -152,6 +152,29 @@ def upload_output_zip_file(bucket_name, zip_file_path, user_outputs):
         print(e)
         return False
 
+def upload_input_zip_file(bucket_name, zip_file_path, test_cases):
+    try:
+        zip_buffer = io.BytesIO()
+        with ZipFile(zip_buffer, 'w') as zip_file:
+            # Tạo từng file output và thêm vào zip
+            for test_case in test_cases:
+                input = test_case['input']
+                file_name = input['file_name']
+                content = input['text']
+                zip_file.writestr(file_name, content)
+        # Thiết lập lại con trỏ buffer về đầu trước khi gửi lên MinIO
+        zip_buffer.seek(0)
+        client.put_object(
+            bucket_name,
+            zip_file_path,
+            data=zip_buffer,
+            length=zip_buffer.getbuffer().nbytes,
+            content_type="application/zip"
+        )
+        return True
+    except Exception as e:
+        print(e)
+        return False
 # upload_file("/home/vinh/Documents/mysql-judger/expected_output/tc2.txt", "file.txt")
 # read_file("file.txt")
 # download_file("file.txt", "/home/vinh/Documents/mysql-judger/expected_output/down2.txt")

@@ -31,29 +31,6 @@ def create_isolated_database(test_case_data, db_name):
             """
         ]
         
-        
-
-        # sql_file_name = os.path.join(os.getenv('SOLUTION_DIR'), "a.sql")
-        # file_helper.create_file(sql_file_name, sql_commands)
-        # container_name = 'sqlserver'
-
-        # command = (
-        #     f"/opt/mssql-tools/bin/sqlcmd -S {os.getenv('MS_SQL_SERVER_DB_HOST')},1433 "
-        #     f"-U {os.getenv('DB_S1_USERNAME')} -P {os.getenv('DB_S1_PASSWORD')} "
-        #     f"-C -Q \"{sql_commands}\""
-        # )
-
-        # print(command)
-        # result = subprocess.run(
-        #     command, 
-        #     shell=True, 
-        #     check=True, 
-        #     stdout=subprocess.PIPE, 
-        #     stderr=subprocess.PIPE, 
-        #     text=True, 
-        # )
-
-        # print(result)
         s1_connection, s1_cursor = ms_sql_server_connection.get_s1_connection_and_cursor()
         # for command in sql_commands.split(';'):
         #     if command.strip():
@@ -199,38 +176,20 @@ def compare_output(test_case_data, user_output: str, expected_output: str) -> st
             status=SubmissionStatus.INTERNAL_ERROR,
         )
 
-# def save_standard_output(standard_output_text, question_postfix: str, language: str, test_case_index):
+# def save_standard_input_output(standard_output_text, question_postfix: str, language: str, test_case_index):
 #     object_name = f"output_question-{question_postfix}_lang-{language}_tc{test_case_index}.txt"
 #     storage_helper.upload_file_from_content(storage_helper.default_bucket_name, object_name, standard_output_text)
 
 def remove_isolated_database(db_name):
     try:
         sql_commands = f"""
+        USE master;
         DROP DATABASE {db_name};
         """
-
-        container_name = 'sqlserver'
-        command = (
-            f"/opt/mssql-tools/bin/sqlcmd -S {os.getenv('MS_SQL_SERVER_DB_HOST')},1433 "
-            f"-U {os.getenv('DB_S1_USERNAME')} -P {os.getenv('DB_S1_PASSWORD')} "
-            f"-C -Q \"{sql_commands}\" -W"
-        )
-
-        result = subprocess.run(
-            command, 
-            shell=True, 
-            check=True, 
-            stdout=subprocess.PIPE, 
-            stderr=subprocess.PIPE, 
-            text=True,
-        )
-
-        # s1_connection, s1_cursor = ms_sql_server_connection.get_s1_connection_and_cursor()
-        # for command in sql_commands.split(';'):
-        #     if command.strip():
-        #         s1_cursor.execute(command)
-
-        # s1_connection.commit()
+        print(sql_commands)
+        s1_connection, s1_cursor = ms_sql_server_connection.get_s1_connection_and_cursor()
+        s1_cursor.execute(sql_commands)
+        s1_connection.commit()
     except:
         pass
 

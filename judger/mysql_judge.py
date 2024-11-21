@@ -150,7 +150,7 @@ def compare_output(test_case_data, user_output: str, expected_output: str) -> st
             status=SubmissionStatus.INTERNAL_ERROR,
         )
 
-# def save_standard_output(standard_output_text, question_postfix: str, language: str, test_case_index):
+# def save_standard_input_output(standard_output_text, question_postfix: str, language: str, test_case_index):
 #     object_name = f"output_question-{question_postfix}_lang-{language}_tc{test_case_index}.txt"
 #     storage_helper.upload_file_from_content(storage_helper.default_bucket_name, object_name, standard_output_text)
 

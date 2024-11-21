@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 import requests
 from constants.submission_constants import SubmissionStatus
 import helpers.storage_helper as storage_helper
-
 load_dotenv()
 
 def judge_submission(data:dict):
@@ -17,9 +16,10 @@ def judge_submission(data:dict):
         target_type = data.get('type', SubmissionStatus.TYPE_JUDGE_SUBMISSION)
         language = data['language']
         question:dict = data['question']
+        saved_data:dict = data.get('saved_data', {})
         input_test_cases_from_s3 = storage_helper.read_input_zip_file(storage_helper.default_bucket_name, question.get('input_file_path'))
-        
         question['test_cases'] = []
+
         for input_test_case in input_test_cases_from_s3:
             question['test_cases'].append({
                 'input': {
@@ -102,10 +102,9 @@ def judge_submission(data:dict):
 
         elif target_type == SubmissionStatus.TYPE_VALIDATE_CREATE_QUESTION:
             user_outputs = sorted(user_outputs, key=lambda x: x['test_case']['index'])
-
-            if(data.get('save_standard_output', False)): 
-                storage_helper.upload_output_zip_file(storage_helper.default_bucket_name, question.get('output_file_path'), user_outputs)
-
+            if(data.get('save_standard_input_output', False)): 
+                storage_helper.upload_input_zip_file(storage_helper.default_bucket_name, saved_data.get('input_file_path'), question['test_cases'])
+                storage_helper.upload_output_zip_file(storage_helper.default_bucket_name, saved_data.get('output_file_path'), user_outputs)
             question_validation_data = {
                 'validateResult': {
                     'isSuccess': final_status == SubmissionStatus.VALID,
@@ -117,10 +116,19 @@ def judge_submission(data:dict):
                     'outputs': user_outputs,
                     'executionTime': max_execution_time,
                 },
-                'isUpdateExistedQuestion': data.get('update_existed_question', False)
+                'requestId': data.get('request_id'),
+                'savedData': {
+                    'inputFilePath': saved_data.get('input_file_path', None),
+                    'outputFilePath': saved_data.get('output_file_path', None),
+                    'additionalCheckCode': question.get('additional_check_code', None),
+                    'standardSolutionCode': submission.get('user_sql', None)
+                },
+                'isSaveQuestionLanguage': data.get('save_question_language', False)
             }
+
             response = requests.post(f"{os.getenv('SQL_LAB_SERVER_URL') + '/judge/update-question-status'}", json=question_validation_data)
             
     except Exception as e:
+        e.with_traceback
         print(e)
         pass

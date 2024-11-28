@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import requests
 from constants.submission_constants import SubmissionStatus
 import helpers.storage_helper as storage_helper
+from api import api_helper
 load_dotenv()
 
 def judge_submission(data:dict):
@@ -98,7 +99,8 @@ def judge_submission(data:dict):
                 }
             }
             print(update_submission_data)
-            response = requests.post(f"{os.getenv('SQL_LAB_SERVER_URL') + '/judge/update-submission-status'}", json=update_submission_data)
+            apiHelper = api_helper.ApiHelper()
+            response = apiHelper.post(endpoint='/judge/update-submission-status', json_data=update_submission_data)
 
         elif target_type == SubmissionStatus.TYPE_VALIDATE_CREATE_QUESTION:
             user_outputs = sorted(user_outputs, key=lambda x: x['test_case']['index'])
@@ -121,13 +123,14 @@ def judge_submission(data:dict):
                     'inputFilePath': saved_data.get('input_file_path', None),
                     'outputFilePath': saved_data.get('output_file_path', None),
                     'additionalCheckCode': question.get('additional_check_code', None),
-                    'standardSolutionCode': submission.get('user_sql', None)
+                    'standardSolutionCode': submission.get('user_sql', None),
+                    'exampleTestCases': question.get('example_test_cases', 0),
                 },
                 'isSaveQuestionLanguage': data.get('save_question_language', False)
             }
 
-            response = requests.post(f"{os.getenv('SQL_LAB_SERVER_URL') + '/judge/update-question-status'}", json=question_validation_data)
-            
+            apiHelper = api_helper.ApiHelper()
+            response = apiHelper.post(endpoint='/judge/update-question-status', json_data=question_validation_data)
     except Exception as e:
         e.with_traceback
         print(e)

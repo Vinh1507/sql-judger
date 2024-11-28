@@ -108,33 +108,6 @@ def execute_solution(test_case_data, sql_file_name, sql_code, time_limit):
             **test_case_data,
             status=SubmissionStatus.RUNTIME_ERROR,
         )
-
-# def get_expected_output(test_case_data, object_name):
-#     """
-#     Redis cache in 24 hours
-#     """
-#     data_from_redis = redis_client.get(object_name)
-    
-#     if data_from_redis is not None:
-#         print(f"Dữ liệu đã được lấy từ Redis với object_name '{object_name}'.")
-#         return data_from_redis.decode('utf-8')  # Giả sử dữ liệu là chuỗi
-
-#     # Nếu không có dữ liệu trong Redis, lấy từ MinIO
-#     try:
-#         # Lấy đối tượng từ MinIO
-#         data_from_storage = storage_helper.read_file(bucket_name=storage_helper.default_bucket_name, object_name=object_name)
-        
-#         # Lưu dữ liệu vào Redis để sử dụng sau này
-#         redis_client.set(object_name, data_from_storage, ex=86400)
-#         print(f"Dữ liệu đã được lấy từ MinIO và lưu vào Redis với object_name '{object_name}'.")
-        
-#         return data_from_storage
-#     except S3Error as exc:
-#         print(f"Lỗi khi lấy dữ liệu từ MinIO: {exc}")
-#         raise JudgerException (
-#             **test_case_data,
-#             status=SubmissionStatus.INTERNAL_ERROR
-#         )
         
 
 def compare_output(test_case_data, user_output: str, expected_output: str) -> str:

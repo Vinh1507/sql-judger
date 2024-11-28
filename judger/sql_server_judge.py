@@ -52,7 +52,6 @@ def create_isolated_database(test_case_data, db_name):
 def execute_input_code(test_case_data, sql_file_name, sql_code, db_name):
     try:
         file_helper.create_file(sql_file_name, sql_code)
-        container_name = 'sqlserver'
         command = (
             f"/opt/mssql-tools/bin/sqlcmd -S {os.getenv('MS_SQL_SERVER_DB_HOST')},1433 "
             f"-U {os.getenv('DB_S2_USERNAME')} -P {os.getenv('DB_S2_PASSWORD')} -d '{db_name}' "
@@ -92,7 +91,6 @@ def execute_solution(test_case_data, sql_file_name, sql_code, time_limit, db_nam
     try:
         start_time = time.time()
         file_helper.create_file(sql_file_name, sql_code)
-        container_name = 'sqlserver'
         command = (
             f"/opt/mssql-tools/bin/sqlcmd -S {os.getenv('MS_SQL_SERVER_DB_HOST')},1433 "
             f"-U {os.getenv('DB_S2_USERNAME')} -P {os.getenv('DB_S2_PASSWORD')} -d '{db_name}' "
@@ -107,11 +105,8 @@ def execute_solution(test_case_data, sql_file_name, sql_code, time_limit, db_nam
             text=True, 
             timeout=time_limit
         )
-
-        file_helper.create_file(f"result{db_name}.txt", result.stdout)
         end_time = time.time()
         execution_time = end_time - start_time
-        # print(result.stdout)
         return {
             'user_output': result.stdout,
             'execution_time': execution_time

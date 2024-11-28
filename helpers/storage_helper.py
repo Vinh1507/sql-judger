@@ -6,6 +6,8 @@ import io
 
 from zipfile import ZipFile
 import re
+import redis
+import json
 
 load_dotenv()
 
@@ -15,8 +17,9 @@ client = Minio(
     secret_key=os.getenv('S3_SECRET_KEY'), 
     secure=(os.getenv('S3_SECURE') == 'True')
 )
+redis_client = redis.StrictRedis(host=os.getenv('REDIS_HOST'), port=os.getenv('REDIS_PORT'), db=int(os.getenv('REDIS_DB')))
 
-default_bucket_name = "sql-data"
+default_bucket_name = os.getenv('MINIO_DEFAULT_BUCKET_NAME', "sql-data")
 
 # Create bucket if not exist
 def create_bucket(bucket_name):
@@ -72,6 +75,10 @@ def read_file(bucket_name, object_name):
 
 def read_input_zip_file(bucket_name, zip_file_path):
     try:
+        data_from_redis = redis_client.get(zip_file_path)
+        if data_from_redis is not None:
+            return json.loads(data_from_redis.decode('utf-8'))
+        
         txt_files_content = []
         response = client.get_object(bucket_name, zip_file_path)
         with ZipFile(io.BytesIO(response.read())) as zip_file:
@@ -93,6 +100,7 @@ def read_input_zip_file(bucket_name, zip_file_path):
         # # In nội dung các file .txt đã đọc
         # for index, content in enumerate(txt_files_content, start=1):
         #     print(f"File {index} content:\n{content}\n")
+        redis_client.set(zip_file_path, json.dumps(txt_files_content), ex=86400)
         return txt_files_content
     except Exception as e:
         print(e)
@@ -100,6 +108,10 @@ def read_input_zip_file(bucket_name, zip_file_path):
 
 def read_output_zip_file(bucket_name, zip_file_path):
     try:
+        data_from_redis = redis_client.get(zip_file_path)
+        if data_from_redis is not None:
+            return json.loads(data_from_redis.decode('utf-8'))
+        
         txt_files_content = []
         response = client.get_object(bucket_name, zip_file_path)
         with ZipFile(io.BytesIO(response.read())) as zip_file:
@@ -121,6 +133,7 @@ def read_output_zip_file(bucket_name, zip_file_path):
         # In nội dung các file .txt đã đọc
         # for index, content in enumerate(txt_files_content, start=1):
         #     print(f"File {index} content:\n{content}\n")
+        redis_client.set(zip_file_path, json.dumps(txt_files_content), ex=86400)
         return txt_files_content
     except Exception as e:
         print(e)

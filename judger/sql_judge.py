@@ -8,6 +8,9 @@ import requests
 from constants.submission_constants import SubmissionStatus
 import helpers.storage_helper as storage_helper
 from api import api_helper
+import threading
+
+
 load_dotenv()
 
 def judge_submission(data:dict):
@@ -18,6 +21,7 @@ def judge_submission(data:dict):
         language = data['language']
         question:dict = data['question']
         saved_data:dict = data.get('saved_data', {})
+        submission['user_sql'] = storage_helper.read_file(bucket_name=storage_helper.default_bucket_name, object_name=submission['user_submission_file_path'])
         input_test_cases_from_s3 = storage_helper.read_input_zip_file(storage_helper.default_bucket_name, question.get('input_file_path'))
         question['test_cases'] = []
 
@@ -105,8 +109,17 @@ def judge_submission(data:dict):
         elif target_type == SubmissionStatus.TYPE_VALIDATE_CREATE_QUESTION:
             user_outputs = sorted(user_outputs, key=lambda x: x['test_case']['index'])
             if(data.get('save_standard_input_output', False)): 
-                storage_helper.upload_input_zip_file(storage_helper.default_bucket_name, saved_data.get('input_file_path'), question['test_cases'])
-                storage_helper.upload_output_zip_file(storage_helper.default_bucket_name, saved_data.get('output_file_path'), user_outputs)
+
+                threads = [
+                    threading.Thread(target=storage_helper.upload_input_zip_file, args=(storage_helper.default_bucket_name, saved_data.get('input_file_path'), question['test_cases'])),
+                    threading.Thread(target=storage_helper.upload_output_zip_file, args=(storage_helper.default_bucket_name, saved_data.get('output_file_path'), user_outputs)),
+                    threading.Thread(target=storage_helper.upload_file_from_content, args=(storage_helper.default_bucket_name, saved_data.get('standard_code_file_path'), submission['user_sql']))
+                ]
+                for thread in threads:
+                    thread.start()
+                for thread in threads:
+                    thread.join()
+
             question_validation_data = {
                 'validateResult': {
                     'isSuccess': final_status == SubmissionStatus.VALID,
@@ -123,7 +136,7 @@ def judge_submission(data:dict):
                     'inputFilePath': saved_data.get('input_file_path', None),
                     'outputFilePath': saved_data.get('output_file_path', None),
                     'additionalCheckCode': question.get('additional_check_code', None),
-                    'standardSolutionCode': submission.get('user_sql', None),
+                    'standardSolutionCode': saved_data.get('standard_code_file_path', None),
                     'exampleTestCases': question.get('example_test_cases', 0),
                 },
                 'isSaveQuestionLanguage': data.get('save_question_language', False)

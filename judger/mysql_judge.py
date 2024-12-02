@@ -42,7 +42,7 @@ def create_isolated_database(test_case_data, db_name):
 def execute_input_code(test_case_data, sql_file_name, sql_code):
     try:
         file_helper.create_file(sql_file_name, sql_code)
-        command = f"mysql -h {os.getenv('MYSQL_DB_HOST')} -P {os.getenv('MYSQL_DB_PORT')} -p{os.getenv('DB_S2_PASSWORD')} -u {os.getenv('DB_S2_USERNAME')} < {sql_file_name}"
+        command = f"mysql -h {os.getenv('MYSQL_DB_HOST')} -P {os.getenv('MYSQL_DB_PORT')} -u {os.getenv('DB_S2_USERNAME')} < {sql_file_name}"
         
         result = subprocess.run(
             command, 
@@ -72,7 +72,7 @@ def execute_solution(test_case_data, sql_file_name, sql_code, time_limit):
     try:
         start_time = time.time()
         file_helper.create_file(sql_file_name, sql_code)
-        command = f"mysql -h {os.getenv('MYSQL_DB_HOST')} -P {os.getenv('MYSQL_DB_PORT')} -p{os.getenv('DB_S2_PASSWORD')} -u {os.getenv('DB_S2_USERNAME')} < {sql_file_name}"
+        command = f"mysql -h {os.getenv('MYSQL_DB_HOST')} -P {os.getenv('MYSQL_DB_PORT')} -u {os.getenv('DB_S2_USERNAME')} < {sql_file_name}"
         
         result = subprocess.run(
             command, 
@@ -143,7 +143,7 @@ def remove_isolated_database(db_name):
         pass
 
 
-def judge_one_test_case(question: dict, data: dict, test_case_index: int) -> None:
+def judge_one_test_case(data: dict, test_case_index: int) -> None:
     try:
         user = data['user']
         question = data['question']

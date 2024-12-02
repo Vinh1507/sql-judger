@@ -1,20 +1,25 @@
 import mysql.connector
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
 
 # Thiết lập thông tin kết nối
 s1_config = {
-    'user': 'sql_lab_s1',        # Thay thế bằng tên người dùng của bạn
-    'password': 'SqlLab2024!',    # Thay thế bằng mật khẩu của bạn
-    'host': 'localhost',       # Địa chỉ máy chủ (có thể là địa chỉ IP hoặc localhost)
-    # 'database': 'base_question_data', # Thay thế bằng tên cơ sở dữ liệu của bạn
-    'port': 3309
+    'user': os.getenv('DB_S1_USERNAME'),        
+    'password': os.getenv('DB_S1_PASSWORD'),    
+    'host': os.getenv('MYSQL_DB_HOST'),       
+    # 'database': None,
+    'port': os.getenv('MYSQL_DB_PORT', 3306)
 }
 
 s2_config = {
-    'user': 'sql_lab_s2',        # Thay thế bằng tên người dùng của bạn
-    'password': 'SqlLab2024!',    # Thay thế bằng mật khẩu của bạn
-    'host': 'localhost',       # Địa chỉ máy chủ (có thể là địa chỉ IP hoặc localhost)
-    'database': 'base_question_data', # Thay thế bằng tên cơ sở dữ liệu của bạn
-    'port': 3309
+    'user': os.getenv('DB_S2_USERNAME'),        
+    'password': os.getenv('DB_S1_PASSWORD'),    
+    'host': os.getenv('MYSQL_DB_HOST'),       
+    'database': 'base_question_data', 
+    'port': os.getenv('MYSQL_DB_PORT', 3306)
 }
 
 s1_connection = None

@@ -2,11 +2,14 @@ import multiprocessing
 import subprocess
 import os
 import time
-import tasks
+import judger.tasks as tasks
 from dotenv import load_dotenv
 import requests
-from constants import SubmissionStatus
-import storage_helper
+from constants.submission_constants import SubmissionStatus
+import helpers.storage_helper as storage_helper
+from api import api_helper
+import threading
+
 
 load_dotenv()
 
@@ -15,11 +18,13 @@ def judge_submission(data:dict):
         user = data['user']
         submission:dict = data['submission']
         target_type = data.get('type', SubmissionStatus.TYPE_JUDGE_SUBMISSION)
-
+        language = data['language']
         question:dict = data['question']
+        saved_data:dict = data.get('saved_data', {})
+        submission['user_sql'] = storage_helper.read_file(bucket_name=storage_helper.default_bucket_name, object_name=submission['user_submission_file_path'])
         input_test_cases_from_s3 = storage_helper.read_input_zip_file(storage_helper.default_bucket_name, question.get('input_file_path'))
-        
         question['test_cases'] = []
+
         for input_test_case in input_test_cases_from_s3:
             question['test_cases'].append({
                 'input': {
@@ -98,28 +103,48 @@ def judge_submission(data:dict):
                 }
             }
             print(update_submission_data)
-            response = requests.post(f"{os.getenv('SQL_LAB_SERVER_URL') + '/judge/update-submission-status'}", json=update_submission_data)
+            apiHelper = api_helper.ApiHelper()
+            response = apiHelper.post(endpoint='/judge/update-submission-status', json_data=update_submission_data)
 
         elif target_type == SubmissionStatus.TYPE_VALIDATE_CREATE_QUESTION:
             user_outputs = sorted(user_outputs, key=lambda x: x['test_case']['index'])
+            if(data.get('save_standard_input_output', False)): 
 
-            if(data.get('save_standard_output', False)): 
-                storage_helper.upload_output_zip_file(storage_helper.default_bucket_name, question.get('output_file_path'), user_outputs)
+                threads = [
+                    threading.Thread(target=storage_helper.upload_input_zip_file, args=(storage_helper.default_bucket_name, saved_data.get('input_file_path'), question['test_cases'])),
+                    threading.Thread(target=storage_helper.upload_output_zip_file, args=(storage_helper.default_bucket_name, saved_data.get('output_file_path'), user_outputs)),
+                    threading.Thread(target=storage_helper.upload_file_from_content, args=(storage_helper.default_bucket_name, saved_data.get('standard_code_file_path'), submission['user_sql']))
+                ]
+                for thread in threads:
+                    thread.start()
+                for thread in threads:
+                    thread.join()
 
             question_validation_data = {
                 'validateResult': {
                     'isSuccess': final_status == SubmissionStatus.VALID,
-                    'languageName': 1, #mysql
+                    'languageName': language,
                     'question': {
                         'code': question['code'],
                     },
                     'message': first_message,
-                    'outputs': user_outputs
+                    'outputs': user_outputs,
+                    'executionTime': max_execution_time,
                 },
-                'isUpdateExistedQuestion': data.get('update_existed_question', False)
+                'requestId': data.get('request_id'),
+                'savedData': {
+                    'inputFilePath': saved_data.get('input_file_path', None),
+                    'outputFilePath': saved_data.get('output_file_path', None),
+                    'additionalCheckCode': question.get('additional_check_code', None),
+                    'standardSolutionCode': saved_data.get('standard_code_file_path', None),
+                    'exampleTestCases': question.get('example_test_cases', 0),
+                },
+                'isSaveQuestionLanguage': data.get('save_question_language', False)
             }
-            response = requests.post(f"{os.getenv('SQL_LAB_SERVER_URL') + '/judge/update-question-status'}", json=question_validation_data)
-            
+
+            apiHelper = api_helper.ApiHelper()
+            response = apiHelper.post(endpoint='/judge/update-question-status', json_data=question_validation_data)
     except Exception as e:
+        e.with_traceback
         print(e)
         pass

@@ -1,34 +1,67 @@
 version: '3.8'
 
 services:
-  # rabbitmq:
-  #   image: "rabbitmq:3.9-management"
-  #   ports:
-  #     - "5673:5672"
-  #   environment:
-  #     RABBITMQ_DEFAULT_USER: guest
-  #     RABBITMQ_DEFAULT_PASS: guest
-  #   healthcheck:
-  #     test: ["CMD", "rabbitmqctl", "status"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 5
-      
-  # dramatiq:
-  #   build: .
-  #   command: ["sh", "-c", "while ! nc -z rabbitmq 5672; do sleep 1; done; dramatiq tasks"]
-  #   depends_on:
-  #     rabbitmq:
-  #       condition: service_healthy
+  python-app:
+    build:
+      context: .
+      dockerfile: Dockerfile  # Đảm bảo Dockerfile nằm trong cùng thư mục với file docker-compose.yml
+    container_name: python-sqlcmd-app
+    # ports:
+    #   - "8000:8000" 
+    environment:
+      - PYTHONUNBUFFERED=1  # Đảm bảo rằng output không bị đệm, hữu ích khi debug
+    volumes:
+      - .:/app  # Mount mã nguồn của bạn vào container
+    depends_on:
+      - mysql_judge_db
+      - sqlserver
+      - redis
 
-  # scheduler:
-  #   build: .
-  #   command: ["sh", "-c", "while ! nc -z rabbitmq 5672; do sleep 1; done; python scheduler.py"]
-  #   environment:
-  #     - IPS=192.168.144.133,192.168.144.135,192.168.144.137
-  #   depends_on:
-  #     rabbitmq:
-  #       condition: service_healthy
+  mysql_judge_db:
+    image: mysql:8.0.37
+    restart: always
+    container_name: mysql_judge_db
+    ports:
+      - 3309:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: SqlLab2024!
+      MYSQL_DATABASE: base_issue_data
+    volumes:
+      - ./docker-data/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql_db_data_v17:/var/lib/mysql
+
+  sqlserver:
+    container_name: sqlserver
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=1StrongPwd!!
+      - MSSQL_PID=Developer
+    user: root
+    ports:
+      - 1433:1433
+    volumes:
+      - sqlserver_data3:/var/opt/mssql
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 1StrongPwd!! -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      retries: 10
+      start_period: 10s
+      timeout: 3s
+  sqlserver.configurator:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    user: root
+    volumes:
+      - ./docker-data/mssql_server-init.sql:/docker-entrypoint-initdb.d/init.sql
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    command: >
+      bash -c '
+      /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P 1StrongPwd!! -C -d master -i docker-entrypoint-initdb.d/init.sql;
+      echo "All done!";
+      '
 
   redis:
     image: redis:latest
@@ -40,3 +73,5 @@ services:
 
 volumes:
   redis_data:
+  mysql_db_data_v17:
+  sqlserver_data3:

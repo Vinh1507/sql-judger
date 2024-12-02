@@ -189,7 +189,7 @@ def remove_isolated_database(db_name):
         pass
 
 
-def judge_one_test_case(question: dict, data: dict, test_case_index: int) -> None:
+def judge_one_test_case(data: dict, test_case_index: int) -> None:
     try:
         user = data['user']
         question = data['question']

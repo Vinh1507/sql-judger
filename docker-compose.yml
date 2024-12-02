@@ -1,48 +1,21 @@
 version: '3.8'
 
 services:
-  # rabbitmq:
-  #   image: "rabbitmq:3.9-management"
-  #   ports:
-  #     - "5673:5672"
-  #   environment:
-  #     RABBITMQ_DEFAULT_USER: guest
-  #     RABBITMQ_DEFAULT_PASS: guest
-  #   healthcheck:
-  #     test: ["CMD", "rabbitmqctl", "status"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 5
-      
-  # dramatiq:
-  #   build: .
-  #   command: ["sh", "-c", "while ! nc -z rabbitmq 5672; do sleep 1; done; dramatiq tasks"]
-  #   depends_on:
-  #     rabbitmq:
-  #       condition: service_healthy
-
-  # scheduler:
-  #   build: .
-  #   command: ["sh", "-c", "while ! nc -z rabbitmq 5672; do sleep 1; done; python scheduler.py"]
-  #   environment:
-  #     - IPS=192.168.144.133,192.168.144.135,192.168.144.137
-  #   depends_on:
-  #     rabbitmq:
-  #       condition: service_healthy
-
   python-app:
     build:
       context: .
       dockerfile: Dockerfile  # Đảm bảo Dockerfile nằm trong cùng thư mục với file docker-compose.yml
     container_name: python-sqlcmd-app
     # ports:
-    #   - "8000:8000"  # Mở cổng 8000 từ container ra máy host (nếu ứng dụng Python của bạn chạy trên cổng này)
+    #   - "8000:8000" 
     environment:
       - PYTHONUNBUFFERED=1  # Đảm bảo rằng output không bị đệm, hữu ích khi debug
     volumes:
       - .:/app  # Mount mã nguồn của bạn vào container
-    # depends_on:
-    #   - mssql-db  # Đảm bảo mssql-db (nếu có) đã sẵn sàng trước khi chạy ứng dụng Python
+    depends_on:
+      - mysql_judge_db
+      - sqlserver
+      - redis
 
   mysql_judge_db:
     image: mysql:8.0.37

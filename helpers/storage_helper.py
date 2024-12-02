@@ -77,8 +77,11 @@ def read_input_zip_file(bucket_name, zip_file_path):
     try:
         data_from_redis = redis_client.get(zip_file_path)
         if data_from_redis is not None:
-            return json.loads(data_from_redis.decode('utf-8'))
-        
+            cached_input = json.loads(data_from_redis.decode('utf-8'))
+            head_object = client.stat_object(bucket_name, zip_file_path)
+            if head_object is not None and isinstance(cached_input, dict) and isinstance(cached_input.get('etag', None), str) and head_object.etag == cached_input.get('etag', None).strip('"'):
+                return cached_input.get('data', None)
+            
         txt_files_content = []
         response = client.get_object(bucket_name, zip_file_path)
         with ZipFile(io.BytesIO(response.read())) as zip_file:
@@ -96,11 +99,13 @@ def read_input_zip_file(bucket_name, zip_file_path):
                         "file_name": file_info.filename,
                         "text": content,
                     })
-
-        # # In nội dung các file .txt đã đọc
-        # for index, content in enumerate(txt_files_content, start=1):
-        #     print(f"File {index} content:\n{content}\n")
-        redis_client.set(zip_file_path, json.dumps(txt_files_content), ex=86400)
+        response.close()
+        response.release_conn()
+        cached_value = {
+            'etag': response.headers.get('ETag', None),
+            'data': txt_files_content,
+        }
+        redis_client.set(zip_file_path, json.dumps(cached_value), ex=86400)
         return txt_files_content
     except Exception as e:
         print(e)
@@ -110,7 +115,10 @@ def read_output_zip_file(bucket_name, zip_file_path):
     try:
         data_from_redis = redis_client.get(zip_file_path)
         if data_from_redis is not None:
-            return json.loads(data_from_redis.decode('utf-8'))
+            cached_input = json.loads(data_from_redis.decode('utf-8'))
+            head_object = client.stat_object(bucket_name, zip_file_path)
+            if head_object is not None and isinstance(cached_input, dict) and isinstance(cached_input.get('etag', None), str) and head_object.etag == cached_input.get('etag', None).strip('"'):
+                return cached_input.get('data', None)
         
         txt_files_content = []
         response = client.get_object(bucket_name, zip_file_path)
@@ -129,11 +137,13 @@ def read_output_zip_file(bucket_name, zip_file_path):
                         "file_name": file_info.filename,
                         "text": content,
                     })
-
-        # In nội dung các file .txt đã đọc
-        # for index, content in enumerate(txt_files_content, start=1):
-        #     print(f"File {index} content:\n{content}\n")
-        redis_client.set(zip_file_path, json.dumps(txt_files_content), ex=86400)
+        response.close()
+        response.release_conn()
+        cached_value = {
+            'etag': response.headers.get('ETag', None),
+            'data': txt_files_content,
+        }
+        redis_client.set(zip_file_path, json.dumps(cached_value), ex=86400)
         return txt_files_content
     except Exception as e:
         print(e)
@@ -188,7 +198,5 @@ def upload_input_zip_file(bucket_name, zip_file_path, test_cases):
     except Exception as e:
         print(e)
         return False
-# upload_file("/home/vinh/Documents/mysql-judger/expected_output/tc2.txt", "file.txt")
-# read_file("file.txt")
-# download_file("file.txt", "/home/vinh/Documents/mysql-judger/expected_output/down2.txt")
+
 

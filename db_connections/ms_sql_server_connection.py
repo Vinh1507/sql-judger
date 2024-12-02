@@ -1,20 +1,24 @@
 import pymssql
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # Thiết lập thông tin kết nối cho SQL Server
 s1_config = {
-    'server': 'sqlserver',        # Địa chỉ máy chủ hoặc tên server
-    'database': None,             # Tên cơ sở dữ liệu (None nếu chưa cần)
-    'username': 'sql_lab_s1',     # Tên người dùng
-    'password': 'SqlLab2024!',    # Mật khẩu
-    'port': 1433                  # Cổng (1433 mặc định cho SQL Server)
+    'server': os.getenv('MS_SQL_SERVER_DB_HOST'),       
+    'database': None,            
+    'username': os.getenv('DB_S1_USERNAME'),    
+    'password': os.getenv('DB_S1_PASSWORD'),   
+    'port': int(os.getenv('MS_SQL_SERVER_DB_BASE_PORT'))                 
 }
 
 s2_config = {
-    'server': 'sqlserver',        # Địa chỉ máy chủ hoặc tên server
-    'database': 'base_question_data',  # Tên cơ sở dữ liệu
-    'username': 'sql_lab_s2',     # Tên người dùng
-    'password': 'SqlLab2024!',    # Mật khẩu
-    'port': 1433                  # Cổng (1433 mặc định cho SQL Server)
+    'server': os.getenv('MS_SQL_SERVER_DB_HOST'),       
+    'database': os.getenv('DB_S2_NAME'), 
+    'username': os.getenv('DB_S2_USERNAME'),    
+    'password': os.getenv('DB_S2_PASSWORD'),   
+    'port': int(os.getenv('MS_SQL_SERVER_DB_BASE_PORT'))                   
 }
 
 s1_connection = None

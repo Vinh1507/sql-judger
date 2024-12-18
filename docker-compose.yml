@@ -6,8 +6,20 @@ services:
       context: .
       dockerfile: Dockerfile  # Đảm bảo Dockerfile nằm trong cùng thư mục với file docker-compose.yml
     container_name: python-sqlcmd-app
-    # ports:
-    #   - "8000:8000" 
+    environment:
+      - PYTHONUNBUFFERED=1  # Đảm bảo rằng output không bị đệm, hữu ích khi debug
+    volumes:
+      - .:/app  # Mount mã nguồn của bạn vào container
+    depends_on:
+      - mysql_judge_db
+      - sqlserver
+      - redis
+
+  python-app-2:
+    build:
+      context: .
+      dockerfile: Dockerfile  # Đảm bảo Dockerfile nằm trong cùng thư mục với file docker-compose.yml
+    container_name: python-sqlcmd-app-2
     environment:
       - PYTHONUNBUFFERED=1  # Đảm bảo rằng output không bị đệm, hữu ích khi debug
     volumes:
@@ -24,7 +36,7 @@ services:
     ports:
       - 3309:3306
     environment:
-      MYSQL_ROOT_PASSWORD: SqlLab2024!
+      MYSQL_ROOT_PASSWORD: "SqlLab2024!"
       MYSQL_DATABASE: base_issue_data
     volumes:
       - ./docker-data/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql

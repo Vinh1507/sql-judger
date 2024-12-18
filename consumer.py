@@ -12,8 +12,9 @@ load_dotenv()
 def on_message_received(ch, method, properties, body):
     try:
         data = json.loads(body.decode('utf-8'))
-        print(data)
-        executor.submit(sql_judge.judge_submission, data)
+        print("RECEIVED MESSAGE")
+        sql_judge.judge_submission(data, ch, method)
+        
     except Exception as e:
         print(e)
 
@@ -24,7 +25,7 @@ queue_name = os.getenv('RABBITMQ_QUEUE_NAME')
 pattern = os.getenv('JUDGER_PATTERN')
 
 def start_consumer():
-    max_retries = 5  # Số lần retry tối đa
+    max_retries = 50000000  # Số lần retry tối đa
     retry_count = 0  # Đếm số lần retry
     
     while retry_count < max_retries:
@@ -41,7 +42,7 @@ def start_consumer():
             channel.queue_bind(exchange=exchange_name, queue=queue_name, routing_key=pattern)
 
             # Bắt đầu tiêu thụ tin nhắn
-            channel.basic_consume(queue=queue_name, on_message_callback=on_message_received, auto_ack=True)
+            channel.basic_consume(queue=queue_name, on_message_callback=on_message_received, auto_ack=False)
             print("Start Consuming")
             channel.start_consuming()
 
@@ -58,5 +59,5 @@ def start_consumer():
             retry_count = 0
     
     print("Exceeded maximum retry attempts. Exiting...")
-executor = ThreadPoolExecutor(max_workers=3)
+
 start_consumer()

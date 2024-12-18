@@ -6,6 +6,8 @@ import io
 
 from zipfile import ZipFile
 import re
+import redis
+import json
 
 load_dotenv()
 
@@ -15,8 +17,9 @@ client = Minio(
     secret_key=os.getenv('S3_SECRET_KEY'), 
     secure=(os.getenv('S3_SECURE') == 'True')
 )
+redis_client = redis.StrictRedis(host=os.getenv('REDIS_HOST'), port=os.getenv('REDIS_PORT'), db=int(os.getenv('REDIS_DB')))
 
-default_bucket_name = "sql-data"
+default_bucket_name = os.getenv('MINIO_DEFAULT_BUCKET_NAME', "sql-data")
 
 # Create bucket if not exist
 def create_bucket(bucket_name):
@@ -56,7 +59,6 @@ def download_file(bucket_name, object_name, file_path):
         print(f"Lỗi khi tải xuống file: {exc}")
 
 def read_file(bucket_name, object_name):
-    print(object_name)
     try:
         response = client.get_object(bucket_name, object_name)
         
@@ -72,6 +74,13 @@ def read_file(bucket_name, object_name):
 
 def read_input_zip_file(bucket_name, zip_file_path):
     try:
+        data_from_redis = redis_client.get(zip_file_path)
+        if data_from_redis is not None:
+            cached_input = json.loads(data_from_redis.decode('utf-8'))
+            head_object = client.stat_object(bucket_name, zip_file_path)
+            if head_object is not None and isinstance(cached_input, dict) and isinstance(cached_input.get('etag', None), str) and head_object.etag == cached_input.get('etag', None).strip('"'):
+                return cached_input.get('data', None)
+            
         txt_files_content = []
         response = client.get_object(bucket_name, zip_file_path)
         with ZipFile(io.BytesIO(response.read())) as zip_file:
@@ -89,10 +98,13 @@ def read_input_zip_file(bucket_name, zip_file_path):
                         "file_name": file_info.filename,
                         "text": content,
                     })
-
-        # # In nội dung các file .txt đã đọc
-        # for index, content in enumerate(txt_files_content, start=1):
-        #     print(f"File {index} content:\n{content}\n")
+        response.close()
+        response.release_conn()
+        cached_value = {
+            'etag': response.headers.get('ETag', None),
+            'data': txt_files_content,
+        }
+        redis_client.set(zip_file_path, json.dumps(cached_value), ex=86400)
         return txt_files_content
     except Exception as e:
         print(e)
@@ -100,6 +112,13 @@ def read_input_zip_file(bucket_name, zip_file_path):
 
 def read_output_zip_file(bucket_name, zip_file_path):
     try:
+        data_from_redis = redis_client.get(zip_file_path)
+        if data_from_redis is not None:
+            cached_input = json.loads(data_from_redis.decode('utf-8'))
+            head_object = client.stat_object(bucket_name, zip_file_path)
+            if head_object is not None and isinstance(cached_input, dict) and isinstance(cached_input.get('etag', None), str) and head_object.etag == cached_input.get('etag', None).strip('"'):
+                return cached_input.get('data', None)
+        
         txt_files_content = []
         response = client.get_object(bucket_name, zip_file_path)
         with ZipFile(io.BytesIO(response.read())) as zip_file:
@@ -117,10 +136,13 @@ def read_output_zip_file(bucket_name, zip_file_path):
                         "file_name": file_info.filename,
                         "text": content,
                     })
-
-        # In nội dung các file .txt đã đọc
-        # for index, content in enumerate(txt_files_content, start=1):
-        #     print(f"File {index} content:\n{content}\n")
+        response.close()
+        response.release_conn()
+        cached_value = {
+            'etag': response.headers.get('ETag', None),
+            'data': txt_files_content,
+        }
+        redis_client.set(zip_file_path, json.dumps(cached_value), ex=86400)
         return txt_files_content
     except Exception as e:
         print(e)
@@ -128,7 +150,6 @@ def read_output_zip_file(bucket_name, zip_file_path):
 
 
 def upload_output_zip_file(bucket_name, zip_file_path, user_outputs):
-    print(user_outputs)
     try:
         zip_buffer = io.BytesIO()
         with ZipFile(zip_buffer, 'w') as zip_file:
@@ -152,7 +173,28 @@ def upload_output_zip_file(bucket_name, zip_file_path, user_outputs):
         print(e)
         return False
 
-# upload_file("/home/vinh/Documents/mysql-judger/expected_output/tc2.txt", "file.txt")
-# read_file("file.txt")
-# download_file("file.txt", "/home/vinh/Documents/mysql-judger/expected_output/down2.txt")
+def upload_input_zip_file(bucket_name, zip_file_path, test_cases):
+    try:
+        zip_buffer = io.BytesIO()
+        with ZipFile(zip_buffer, 'w') as zip_file:
+            # Tạo từng file output và thêm vào zip
+            for test_case in test_cases:
+                input = test_case['input']
+                file_name = input['file_name']
+                content = input['text']
+                zip_file.writestr(file_name, content)
+        # Thiết lập lại con trỏ buffer về đầu trước khi gửi lên MinIO
+        zip_buffer.seek(0)
+        client.put_object(
+            bucket_name,
+            zip_file_path,
+            data=zip_buffer,
+            length=zip_buffer.getbuffer().nbytes,
+            content_type="application/zip"
+        )
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
 

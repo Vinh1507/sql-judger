@@ -26,12 +26,17 @@ def create_isolated_database(test_case_data, db_name):
         GRANT CREATE, ALTER, INSERT, DROP, UPDATE, DELETE, SELECT, REFERENCES ON {db_name}.* TO '{os.getenv('DB_S2_USERNAME')}'@'%';
         FLUSH PRIVILEGES;
         """
+        # sql_commands = f"""
+        # CREATE DATABASE {db_name};
+        # GRANT ALL PRIVILEGES ON {db_name}.* TO '{os.getenv('DB_S2_USERNAME')}'@'%';
+        # FLUSH PRIVILEGES;
+        # """
         s1_connection, s1_cursor = mysql_connection.get_s1_connection_and_cursor()
         for command in sql_commands.split(';'):
             if command.strip():
                 s1_cursor.execute(command)
+                s1_connection.commit()
 
-        s1_connection.commit()
     except Exception as e:
         print(e)
         raise JudgerException(
@@ -43,7 +48,6 @@ def execute_input_code(test_case_data, sql_file_name, sql_code):
     try:
         file_helper.create_file(sql_file_name, sql_code)
         command = f"mysql -h {os.getenv('MYSQL_DB_HOST')} -P {os.getenv('MYSQL_DB_PORT')} -u {os.getenv('DB_S2_USERNAME')} < {sql_file_name}"
-        
         result = subprocess.run(
             command, 
             shell=True, 
@@ -73,7 +77,6 @@ def execute_solution(test_case_data, sql_file_name, sql_code, time_limit):
         start_time = time.time()
         file_helper.create_file(sql_file_name, sql_code)
         command = f"mysql -h {os.getenv('MYSQL_DB_HOST')} -P {os.getenv('MYSQL_DB_PORT')} -u {os.getenv('DB_S2_USERNAME')} < {sql_file_name}"
-        
         result = subprocess.run(
             command, 
             shell=True, 
@@ -85,7 +88,6 @@ def execute_solution(test_case_data, sql_file_name, sql_code, time_limit):
         )
         end_time = time.time()
         execution_time = end_time - start_time
-        # print(result.stdout)
         return {
             'user_output': result.stdout,
             'execution_time': execution_time
@@ -137,8 +139,8 @@ def remove_isolated_database(db_name):
         for command in sql_commands.split(';'):
             if command.strip():
                 s1_cursor.execute(command)
-
-        s1_connection.commit()
+                s1_connection.commit()
+        
     except:
         pass
 
@@ -147,7 +149,6 @@ def judge_one_test_case(data: dict, test_case_index: int) -> None:
     try:
         user = data['user']
         question = data['question']
-        # print(question['test_cases'])
         submission = data['submission']
         target_type = data.get('type', SubmissionStatus.TYPE_JUDGE_SUBMISSION)
         need_compare_result = target_type == SubmissionStatus.TYPE_JUDGE_SUBMISSION
@@ -190,16 +191,18 @@ def judge_one_test_case(data: dict, test_case_index: int) -> None:
                 **test_case_data,
                 status=compare_status,
                 execution_time=execution_result['execution_time'],
-                user_output=execution_result['user_output'],
-                expected_output=expected_output,
+                user_output='', # Not response user output when judging
+                expected_output='', # Not response expected output when judging
             )
         else:
-            print(type(execution_result['execution_time']))
+            user_output = execution_result['user_output'] # Response the user output shortly, if it's too long, the process can down because of the heavy message
+            if len(user_output) > 100:
+                user_output = user_output[:100] + '.........(continue)..........'
             raise JudgerException(
                 **test_case_data,
                 status=SubmissionStatus.VALID,
                 execution_time=execution_result['execution_time'],
-                user_output=execution_result['user_output'],
+                user_output=user_output,
             )
 
             

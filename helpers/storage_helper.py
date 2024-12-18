@@ -59,7 +59,6 @@ def download_file(bucket_name, object_name, file_path):
         print(f"Lỗi khi tải xuống file: {exc}")
 
 def read_file(bucket_name, object_name):
-    print(object_name)
     try:
         response = client.get_object(bucket_name, object_name)
         
@@ -151,7 +150,6 @@ def read_output_zip_file(bucket_name, zip_file_path):
 
 
 def upload_output_zip_file(bucket_name, zip_file_path, user_outputs):
-    print(user_outputs)
     try:
         zip_buffer = io.BytesIO()
         with ZipFile(zip_buffer, 'w') as zip_file:

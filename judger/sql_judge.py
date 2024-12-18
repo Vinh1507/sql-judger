@@ -13,7 +13,9 @@ import threading
 
 load_dotenv()
 
-def judge_submission(data:dict):
+def judge_submission(data:dict, ch, method):
+    acked_to_queue = False
+    responsed_to_backend = False
     try:
         user = data['user']
         submission:dict = data['submission']
@@ -46,7 +48,6 @@ def judge_submission(data:dict):
                     'text': output_test_case.get('text')
                 }
 
-        print(question['test_cases'])
         processes = []
         result_queue = multiprocessing.Queue()
 
@@ -91,7 +92,7 @@ def judge_submission(data:dict):
         else:
             final_status = first_error_status
         
-        print("All processes have completed or been stopped.", test_case_judgement_audit)
+        print("All processes have completed or been stopped.")
 
         if target_type == SubmissionStatus.TYPE_JUDGE_SUBMISSION:
             update_submission_data = {
@@ -105,6 +106,7 @@ def judge_submission(data:dict):
             print(update_submission_data)
             apiHelper = api_helper.ApiHelper()
             response = apiHelper.post(endpoint='/judge/update-submission-status', json_data=update_submission_data)
+            responsed_to_backend = True
 
         elif target_type == SubmissionStatus.TYPE_VALIDATE_CREATE_QUESTION:
             user_outputs = sorted(user_outputs, key=lambda x: x['test_case']['index'])
@@ -144,7 +146,55 @@ def judge_submission(data:dict):
 
             apiHelper = api_helper.ApiHelper()
             response = apiHelper.post(endpoint='/judge/update-question-status', json_data=question_validation_data)
+            responsed_to_backend = True
+            print(response)
+
+        print("NOW ACK")
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+        acked_to_queue = True
+
     except Exception as e:
-        e.with_traceback
         print(e)
         pass
+    finally:
+        if not acked_to_queue:
+            print("NOW ACK FINNALLY")
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+        if not responsed_to_backend:
+            print("NOW RESPONSE FINNALLY")
+            apiHelper = api_helper.ApiHelper()
+
+            target_type = data.get('type', SubmissionStatus.TYPE_JUDGE_SUBMISSION) 
+
+            if target_type == SubmissionStatus.TYPE_JUDGE_SUBMISSION:
+                update_submission_data = {
+                    'submission': {
+                        "id": submission.get('id', None),
+                        "status": "IR",
+                        'execution_time': 0,
+                    }
+                }
+                response = apiHelper.post(endpoint='/judge/update-submission-status', json_data=update_submission_data)
+            else:
+                question_validation_data = {
+                    'validateResult': {
+                        'isSuccess': False,
+                        'languageName': language,
+                        'question': {
+                            'code': question['code'],
+                        },
+                        'message': None,
+                        'outputs': [],
+                        'executionTime': 0,
+                    },
+                    'requestId': data.get('request_id'),
+                    'savedData': {
+                        'inputFilePath': None,
+                        'outputFilePath': None,
+                        'additionalCheckCode': None,
+                        'standardSolutionCode': None,
+                        'exampleTestCases': None,
+                    },
+                    'isSaveQuestionLanguage': False
+                }
+                response = apiHelper.post(endpoint='/judge/update-question-status', json_data=question_validation_data)

@@ -35,14 +35,12 @@ def create_isolated_database(test_case_data, db_name):
         # for command in sql_commands.split(';'):
         #     if command.strip():
         for sql in sql_commands:
-            print(sql)
             s1_cursor.execute(sql)
             s1_connection.commit()
         
 
 
     except Exception as e:
-        print("ERROR123", db_name)
         print(e)
         raise JudgerException(
             **test_case_data,
@@ -68,7 +66,7 @@ def execute_input_code(test_case_data, sql_file_name, sql_code, db_name):
             text=True, 
         )
 
-        print(result)
+        # print(result)
 
         return {
             'output': result.stdout,
@@ -130,33 +128,6 @@ def execute_solution(test_case_data, sql_file_name, sql_code, time_limit, db_nam
             status=SubmissionStatus.RUNTIME_ERROR,
         )
 
-# def get_expected_output(test_case_data, object_name):
-#     """
-#     Redis cache in 24 hours
-#     """
-#     data_from_redis = redis_client.get(object_name)
-    
-#     if data_from_redis is not None:
-#         print(f"Dữ liệu đã được lấy từ Redis với object_name '{object_name}'.")
-#         return data_from_redis.decode('utf-8')  # Giả sử dữ liệu là chuỗi
-
-#     # Nếu không có dữ liệu trong Redis, lấy từ MinIO
-#     try:
-#         # Lấy đối tượng từ MinIO
-#         data_from_storage = storage_helper.read_file(bucket_name=storage_helper.default_bucket_name, object_name=object_name)
-        
-#         # Lưu dữ liệu vào Redis để sử dụng sau này
-#         redis_client.set(object_name, data_from_storage, ex=86400)
-#         print(f"Dữ liệu đã được lấy từ MinIO và lưu vào Redis với object_name '{object_name}'.")
-        
-#         return data_from_storage
-#     except S3Error as exc:
-#         print(f"Lỗi khi lấy dữ liệu từ MinIO: {exc}")
-#         raise JudgerException (
-#             **test_case_data,
-#             status=SubmissionStatus.INTERNAL_ERROR
-#         )
-        
 
 def compare_output(test_case_data, user_output: str, expected_output: str) -> str:
     compare_status = SubmissionStatus.WRONG_ANSWER
@@ -171,17 +142,12 @@ def compare_output(test_case_data, user_output: str, expected_output: str) -> st
             status=SubmissionStatus.INTERNAL_ERROR,
         )
 
-# def save_standard_input_output(standard_output_text, question_postfix: str, language: str, test_case_index):
-#     object_name = f"output_question-{question_postfix}_lang-{language}_tc{test_case_index}.txt"
-#     storage_helper.upload_file_from_content(storage_helper.default_bucket_name, object_name, standard_output_text)
-
 def remove_isolated_database(db_name):
     try:
         sql_commands = f"""
         USE master;
         DROP DATABASE {db_name};
         """
-        print(sql_commands)
         s1_connection, s1_cursor = ms_sql_server_connection.get_s1_connection_and_cursor()
         s1_cursor.execute(sql_commands)
         s1_connection.commit()
@@ -232,16 +198,18 @@ def judge_one_test_case(data: dict, test_case_index: int) -> None:
                 **test_case_data,
                 status=compare_status,
                 execution_time=execution_result['execution_time'],
-                user_output=execution_result['user_output'],
-                expected_output=expected_output,
+                user_output='', # Not response user output when judging
+                expected_output='', # Not response expected output when judging
             )
         else:
-            print(type(execution_result['execution_time']))
+            user_output = execution_result['user_output'] # Response the user output shortly, if it's too long, the process can down because of the heavy message
+            if len(user_output) > 100:
+                user_output = user_output[:100] + '.........(continue)..........'
             raise JudgerException(
                 **test_case_data,
                 status=SubmissionStatus.VALID,
                 execution_time=execution_result['execution_time'],
-                user_output=execution_result['user_output'],
+                user_output=user_output,
             )
 
             
